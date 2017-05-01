@@ -14,6 +14,11 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+/**
+ * 统计用户数，并且给每个用户编号，生成映射文件
+ * @author jamesxia
+ *
+ */
 public class User2MapFile {
 	static String inputPath;
 	static String outputPath;

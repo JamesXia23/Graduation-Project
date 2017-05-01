@@ -14,15 +14,21 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
+/**
+ * 统计电影数，并且给每个电影顺序编号，生成映射文件
+ * @author jamesxia
+ *
+ */
 public class Movie2MapFile {
 	static String inputPath;
 	static String outputPath;
+
 	public static void main(String[] args) throws Exception {
 		ConsoleHelper helper = new ConsoleHelper(args);
 		
 		inputPath = helper.getArg("-input", "hdfs://comput18:31000/jamesxia/data/ml-1m/ratings.dat");
 		outputPath = helper.getArg("-output", "hdfs://comput18:31000/jamesxia/data/movie2MapFile");
-
+		
 		//定义一个配置文件
 		Configuration conf = new Configuration();
 		
