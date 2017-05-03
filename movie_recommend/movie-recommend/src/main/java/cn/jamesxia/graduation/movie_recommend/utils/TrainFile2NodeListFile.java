@@ -3,36 +3,30 @@ package cn.jamesxia.graduation.movie_recommend.utils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Counter;
-import org.apache.hadoop.mapreduce.Counters;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
-import cn.jamesxia.graduation.movie_recommend.utils.FileSpliter.RatingsRecorder;
-
 /**
- * 统计用户数，并且给每个用户编号，生成映射文件
+ * 将训练文件中的记录转化为集合数组List<Node>[UserNum]并存入文件
  * 
  * @author jamesxia
  *
  */
-public class User2MapFile {
-	static String inputPath;
-	static String outputPath;
+public class TrainFile2NodeListFile {
+	private static String inputPath;
+	private static String outputPath;
 	static final String HDFS = "hdfs://comput18:31000";
-	static enum UserRecorder {
-		UserNum
-	}
 
 	/**
 	 * 提供自运行主类
@@ -44,31 +38,30 @@ public class User2MapFile {
 	public static void main(String[] args) throws Exception {
 		ConsoleHelper helper = new ConsoleHelper(args);
 
-		inputPath = helper.getArg("-input", HDFS + "/jamesxia/data/ml-1m/ratings.dat");
-		outputPath = helper.getArg("-output", HDFS + "/jamesxia/data/user2MapFile");
+		inputPath = helper.getArg("-input", HDFS + "/jamesxia/data/fileSpliter/trainFile-r-00000");
+		outputPath = helper.getArg("-output", HDFS + "/jamesxia/data/trainFile2NodeListFile");
 
-		boolean res = driver(inputPath, outputPath);
+		boolean res = dirver(inputPath, outputPath);
 		System.out.println(res ? "运行成功" : "运行失败");
 	}
 
 	/**
-	 * 运行一个job来统计用户数，给用户编号
+	 * 将训练集转化为集合数组
 	 * 
 	 * @param inputPath
 	 *            输入文件
 	 * @param outputPath
 	 *            输出目录
-	 * @return 任务是否成功
+	 * @return job是否完成
 	 * @throws IOException
-	 * @throws InterruptedException
 	 * @throws ClassNotFoundException
+	 * @throws InterruptedException
 	 * @throws URISyntaxException
 	 */
-	public static boolean driver(String inputPath, String outputPath)
-			throws IOException, InterruptedException, ClassNotFoundException, URISyntaxException {
+	private static boolean dirver(String inputPath, String outputPath)
+			throws IOException, ClassNotFoundException, InterruptedException, URISyntaxException {
 		// 定义一个配置文件
 		Configuration conf = new Configuration();
-		// conf.setInt("mapreduce.input.lineinputformat.linespermap", 10000);
 
 		// 获取hdfs文件系统
 		FileSystem hdfs = FileSystem.get(new URI(HDFS), conf);
@@ -82,51 +75,54 @@ public class User2MapFile {
 		Job job = Job.getInstance(conf);
 
 		// 指定本程序的jar包所在的本地路径
-		job.setJarByClass(User2MapFile.class);
+		job.setJarByClass(TrainFile2NodeListFile.class);
 
 		// 指定本job实用的mapper/reducer类
-		job.setMapperClass(User2MapFileMapper.class);
-		job.setReducerClass(User2MapFileReducer.class);
+		job.setMapperClass(TrainFile2NodeListFileMapper.class);
+		job.setReducerClass(TrainFile2NodeListFileReducer.class);
 
 		// 指定mapper输出的kv类型
 		job.setMapOutputKeyClass(LongWritable.class);
-		job.setMapOutputValueClass(IntWritable.class);
+		job.setMapOutputValueClass(Node.class);
 
 		// 指定最终输出的数据的kv类型
 		job.setOutputKeyClass(LongWritable.class);
-		job.setOutputValueClass(LongWritable.class);
+		job.setOutputValueClass(ArrayWritable.class);
 
 		// 指定job的输入文件以及输出目录
 		FileInputFormat.addInputPath(job, new Path(inputPath));
 		FileOutputFormat.setOutputPath(job, new Path(outputPath));
 
-		boolean res = job.waitForCompletion(true);
-		
-		if(res){
-			Counters counters = job.getCounters();
-			long usersNum = counters.findCounter(UserRecorder.UserNum).getValue();
-			System.out.println("用户数为：" + usersNum);
-		}
-		return res;
+		return job.waitForCompletion(true);
 	}
 
-	static class User2MapFileMapper extends Mapper<LongWritable, Text, LongWritable, IntWritable> {
+	static class TrainFile2NodeListFileMapper extends Mapper<LongWritable, Text, LongWritable, Node> {
 		@Override
-		protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
-
+		protected void map(LongWritable key, Text value, Mapper<LongWritable, Text, LongWritable, Node>.Context context)
+				throws IOException, InterruptedException {
 			String[] strings = value.toString().split(",");
 
-			context.write(new LongWritable(Long.parseLong(strings[0])), new IntWritable(1));
+			// 将该用户看过的电影id和评分封装入node
+			Node node = new Node(Integer.parseInt(strings[1]), Float.parseFloat(strings[2]));
+
+			context.write(new LongWritable(Long.parseLong(strings[0])), node);
 		}
 	}
 
-	static class User2MapFileReducer extends Reducer<LongWritable, IntWritable, LongWritable, LongWritable> {
-
-		protected void reduce(LongWritable key, Iterable<IntWritable> value, Context context)
+	static class TrainFile2NodeListFileReducer extends Reducer<LongWritable, Node, LongWritable, ArrayWritable> {
+		@Override
+		protected void reduce(LongWritable key, Iterable<Node> values,
+				Reducer<LongWritable, Node, LongWritable, ArrayWritable>.Context context)
 				throws IOException, InterruptedException {
-			Counter counter = context.getCounter(UserRecorder.UserNum);
-			counter.increment(1);
-			context.write(key, new LongWritable(counter.getValue()));
+			ArrayList<Node> list = new ArrayList<Node>();
+			// 将该用户所有看过的电影评分节点存入list中
+			for (Node value : values) {
+				list.add(value);
+			}
+			Node[] nodes = new Node[list.size()];
+			list.toArray(nodes);
+			context.write(key, new ArrayWritable(Node.class, nodes));
 		}
 	}
+
 }
