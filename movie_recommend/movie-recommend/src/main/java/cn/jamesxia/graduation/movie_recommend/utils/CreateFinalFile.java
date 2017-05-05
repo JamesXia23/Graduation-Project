@@ -11,14 +11,15 @@ public class CreateFinalFile {
 		File dir = new File("/Users/jamesxia/Downloads/download/training_set");
 		File[] files = dir.listFiles();
 		
-		PrintWriter pw = new PrintWriter(new FileOutputStream("/Users/jamesxia/Downloads/download/neflix-all.csv"), true);
+		PrintWriter pw = new PrintWriter(new FileOutputStream("/Users/jamesxia/Downloads/download/neflix-all-notime.csv"), true);
 		int count = 1;
 		for (File file : files) {
 			BufferedReader bufr = new BufferedReader(new FileReader(file));
 			String line = bufr.readLine();//先读掉第一行
 			while((line = bufr.readLine()) != null) {
 				String[] strings = line.split(",");
-				pw.println(strings[0] + "," + count + "," + strings[1] + "," + strings[2]);
+//				pw.println(strings[0] + "," + count + "," + strings[1] + "," + strings[2]);
+				pw.println(strings[0] + "," + count + "," + strings[1]);
 			}
 			count++;
 			bufr.close();

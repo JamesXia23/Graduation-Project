@@ -33,14 +33,17 @@ public class BiasSVDRecommender extends Recommender{
 		super(dim, lambda, nIter);
 		
 		//计算平均值
-		this.mean = ConstConf.RATINGS * 1.0f / ConstConf.RATINGSNUM;
+		this.mean = ConstConf.RATINGS / ConstConf.RATINGSNUM;
 		
 		// 初始化用户偏置
 		bu = new float[usersNum + 1];
+		for(int i = 0; i < bu.length; i++)
+			bu[i] = (float) (Math.random() / 10);
 		
 		// 初始化电影偏置
 		bi = new float[moviesNum + 1];
-
+		for(int i = 0; i < bi.length; i++)
+			bi[i] = (float) (Math.random() / 10);
 	}
 
 	/**
@@ -51,12 +54,12 @@ public class BiasSVDRecommender extends Recommender{
 	public void train() throws Exception {
 		print("------start training------");
 
-		double Rmse = 0, mLastRmse = 100000;// 本次训练的均方根误差
+		double Rmse = 0;// 本次训练的均方根误差
 		float rui = 0;
 		int lineNum = 0;
-		int n;
+
 		// 迭代训练
-		for (n = 1; n <= nIter; n++) {
+		for (int n = 1; n <= nIter; n++) {
 			print("------start nIter " + n + ": training------");
 			Rmse = 0;// 本次迭代均方根误差
 			lineNum = 0;
@@ -65,14 +68,17 @@ public class BiasSVDRecommender extends Recommender{
 				for (Node oneRating : oneUserRatings) {
 					int uId = oneRating.getuId();
 					int mId = oneRating.getmId();
+					
+					userIsTrain[uId]++;
+					movieIsTrain[mId]++;
 					float rate = oneRating.getRate();
 					rui = mean + bu[uId] // 第i个用户偏置，
 							+ bi[mId] // 第i个电影的偏置
 							+ mt.getInnerProduct(p[uId], q[mId]);// p第i行乘以q第j列
-					if (rui > mMaxRate)
-						rui = mMaxRate;
-					else if (rui < mMinRate)
-						rui = mMinRate;
+//					if (rui > mMaxRate)
+//						rui = mMaxRate;
+//					else if (rui < mMinRate)
+//						rui = mMinRate;
 					float e = rate - rui;// 误差
 					
 					// 更新bu,bi,p,q
@@ -84,7 +90,7 @@ public class BiasSVDRecommender extends Recommender{
 					}
 					Rmse += e * e;// 更新误差平方和
 					
-					if((++lineNum % 50000) == 0){
+					if((++lineNum % (ConstConf.RATINGSNUM / 10)) == 0){
 						print("------training " + lineNum + " ratings------");
 					}
 				}
@@ -93,8 +99,11 @@ public class BiasSVDRecommender extends Recommender{
 			Rmse = Math.sqrt(Rmse / ConstConf.RATINGSNUM);// 计算均方根误差
 			
 			print("------nIter " + n + ": training complete Rmse = " + Rmse + " ------");
-			if (Rmse > mLastRmse)// 迭代终止条件，本轮均方根误差大于本次训练的均方根误差，意味着过了极小值点
+			if (Rmse > mLastRmse){
+				realIter = n - 1;
 				break;
+			}// 迭代终止条件，本轮均方根误差大于本次训练的均方根误差，意味着过了极小值点
+				
 			mLastRmse = Rmse;// 更新本次训练的均方根误差
 			yita *= 0.9; // 缩小更新步长
 		}
@@ -102,15 +111,6 @@ public class BiasSVDRecommender extends Recommender{
 		
 		print("------training complete!------");
 		
-		synchronized (Main.class) {
-			pw.println("推荐器：" + this.getClass().getName() + 
-					"	训练Rmse：" + mLastRmse + 
-					"	正则化参数：" + lambda +
-					"	特征维度：" + dim + 
-					"	设定迭代次数：" + nIter +
-					"	真实迭代次数：" + n
-				);
-		}
 	}
 	
 	/**
@@ -120,26 +120,27 @@ public class BiasSVDRecommender extends Recommender{
 	public void predict() throws Exception {
 		print("------predicting------");
 		
-		double Rmse = 0;
+		long testNum = ConstConf.TESTNUM;
+		
 		for (Node oneTest : mTestMatrix) {
 			int uId = oneTest.getuId();
 			int mId = oneTest.getmId();
 			float rate = oneTest.getRate();
+			
+			if(userIsTrain[uId] < 2 * realIter || movieIsTrain[mId] < 2 * realIter){
+				testNum--;
+				continue;
+			}
 			float rui = mean + bu[uId] + bi[mId]
 					+ mt.getInnerProduct(p[uId], q[mId]);
 			
-			Rmse += (rate - rui) * (rate - rui);
+			predictRmse += (rate - rui) * (rate - rui);
 		}
-		print("test file Rmse = " + Math.sqrt(Rmse / ConstConf.TESTNUM));
+		predictRmse = Math.sqrt(predictRmse / testNum);
+		print("test file Rmse = " + predictRmse);
 	
-		synchronized (Main.class) {
-			pw.println("推荐器：" + this.getClass().getName() + 
-					"	预测Rmse：" + Rmse 
-				);
-			pw.println();
-		}
+		success();
 	}
-
 
 	public float[] getBu() {
 		return bu;

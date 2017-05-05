@@ -145,7 +145,8 @@ public class FileSpliter {
 				ratingsNumCounter.increment(1);
 				//统计记录总分
 				Counter ratingsCounter = context.getCounter(RatingsRecorder.Ratings);
-				ratingsCounter.increment(Long.parseLong(text.split(",")[2]));
+				long rate = (long) (Float.parseFloat(text.split(",")[2]) * 10);	
+				ratingsCounter.increment(rate);
 				
 			} else {
 				context.write(new IntWritable(random.nextInt(10) * 2 + 1), new Text(text));
