@@ -40,23 +40,23 @@ public class MahoutSVDRecommender extends Recommender {
 
 		// neflix
 //		filepath = DATA_PATH + "/neflix/neflix-all-notime.csv";
-//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-neflix-mahout.txt", true), true);
+//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-neflix-mahout-nIter.txt", true), true);
 
 //		// ml-latest
 //		filepath = DATA_PATH + "/ml-latest/ratings.csv";
-//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-latest-mahout.txt", true), true);
+//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-latest-mahout-nIter.txt", true), true);
 //
 //		// ml-20m
-		filepath = DATA_PATH + "/ml-20m/ratings.csv";
-		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-20m-mahout.txt", true), true);
+//		filepath = DATA_PATH + "/ml-20m/ratings.csv";
+//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-20m-mahout-nIter.txt", true), true);
 	
 //		// ml-10M100K
-//		filepath = DATA_PATH + "/ml-10M100K/ratings.dat";
-//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-10M100K-mahout.txt", true), true);
+		filepath = DATA_PATH + "/ml-10M100K/ratings.dat";
+		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-10M100K-mahout-nIter.txt", true), true);
 
 //		// ml-1m
 //		filepath = DATA_PATH + "/ml-1m/ratings.dat";
-//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-1m-mahout.txt", true), true);	
+//		printWriter = new PrintWriter(new FileWriter("/home/guest/jamesxia/result-ml-1m-mahout-nIter.txt", true), true);	
 		
 		if(model == null){
 			model = new FileDataModel(new File(filepath));

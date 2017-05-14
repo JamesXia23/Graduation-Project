@@ -26,9 +26,10 @@ public class Main {
 	static final String HDFS = "hdfs://comput18:31000";
 	static int dim;
 	static float lambda;
+	static int nIter;
 	public static void main(String[] args) throws Exception {
 
-		// ConsoleHelper helper = new ConsoleHelper(args);
+//		 ConsoleHelper helper = new ConsoleHelper(args);
 		//
 		// String inputPath = helper.getArg("-input", HDFS +
 		// "/jamesxia/data/ml-1m/ratings.dat");
@@ -51,8 +52,9 @@ public class Main {
 		// System.out.println(FileSpliter.driver(inputPath, outputPath,
 		// splitRate) ? "第三个job运行成功" : "第三个job运行失败");
 
-		for (dim = 25; dim <= 100; dim += 25) {
-			for (lambda = 0.03f; lambda < 0.1f; lambda += 0.03f) {
+//		nIter = helper.getArg("-nIter", 100);
+//		for (dim = 25; dim <= 100; dim += 25) {
+//			for (lambda = 0.03f; lambda < 0.1f; lambda += 0.03f) {
 //				RecommenderBuilder builder1 = new RecommenderBuilder() {
 //
 //					public org.apache.mahout.cf.taste.recommender.Recommender buildRecommender(DataModel model)
@@ -66,17 +68,17 @@ public class Main {
 //				};
 //				MahoutSVDRecommender mahoutSVDRecommender1 = new MahoutSVDRecommender(dim, lambda, builder1, "ALSWRFactorizer");
 //				new Thread(new RunningRecommender(mahoutSVDRecommender1)).start();
-				
-				RecommenderBuilder builder2 = new RecommenderBuilder() {
-
-					public org.apache.mahout.cf.taste.recommender.Recommender buildRecommender(DataModel model)
-							throws TasteException {
-						return new SVDRecommender(model, new ParallelSGDFactorizer(model, dim, lambda, 200));
-					}
-				};
-				MahoutSVDRecommender mahoutSVDRecommender2 = new MahoutSVDRecommender(dim, lambda, builder2, "ParallelSGDFactorizer");
-				//new Thread(new RunningRecommender(mahoutSVDRecommender2)).start();
-				mahoutSVDRecommender2.predict();
+			
+//		 		RecommenderBuilder builder2 = new RecommenderBuilder() {
+//
+//					public org.apache.mahout.cf.taste.recommender.Recommender buildRecommender(DataModel model)
+//							throws TasteException {
+//						return new SVDRecommender(model, new ParallelSGDFactorizer(model, dim, lambda, nIter));
+//					}
+//				};
+//				MahoutSVDRecommender mahoutSVDRecommender2 = new MahoutSVDRecommender(dim, lambda, builder2, "ParallelSGDFactorizer");
+//				new Thread(new RunningRecommender(mahoutSVDRecommender2)).start();
+//				mahoutSVDRecommender2.predict();
 				
 //				RecommenderBuilder builder3 = new RecommenderBuilder() {
 //
@@ -93,7 +95,7 @@ public class Main {
 //					}
 //				};
 //				MahoutSVDRecommender mahoutSVDRecommender3 = new MahoutSVDRecommender(dim, lambda, builder3, "RatingSGDFactorizer");
-////				new Thread(new RunningRecommender(mahoutSVDRecommender3)).start();
+//					new Thread(new RunningRecommender(mahoutSVDRecommender3)).start();
 //				mahoutSVDRecommender3.predict();
 				
 //				RecommenderBuilder builder4 = new RecommenderBuilder() {
@@ -106,24 +108,19 @@ public class Main {
 //				};
 //				MahoutSVDRecommender mahoutSVDRecommender4 = new MahoutSVDRecommender(dim, lambda, builder4, "RatingSGDFactorizer");
 //				new Thread(new RunningRecommender(mahoutSVDRecommender4)).start();
+//			}
+//		}
+
+		for (dim = 25; dim <= 100; dim += 25) {
+			for (lambda = 0.03f; lambda < 0.1f; lambda += 0.03f)  {
+				BiasSVDRecommender biasSVDRecommender = new BiasSVDRecommender(dim, lambda, 200);
+				new Thread(new RunningRecommender(biasSVDRecommender)).start();
+
+				for (int alpha = 1; alpha < 3; alpha++) {
+					MyRecommender myRecommender = new MyRecommender(dim, lambda, 200, alpha);
+					new Thread(new RunningRecommender(myRecommender)).start();
+				}
 			}
 		}
-
-		// for (dim = 25; dim <= 100; dim += 25) {
-		// for (lambda = 0.03f; lambda < 0.1f; lambda += 0.03f) {
-		// Recommender recommender = new Recommender(dim, lambda, 200);
-		// new Thread(new RunningRecommender(recommender)).start();
-		//
-		// BiasSVDRecommender biasSVDRecommender = new BiasSVDRecommender(dim,
-		// lambda, 200);
-		// new Thread(new RunningRecommender(biasSVDRecommender)).start();
-		//
-		// for (int alpha = 1; alpha < 3; alpha++) {
-		// MyRecommender myRecommender = new MyRecommender(dim, lambda, 200,
-		// alpha);
-		// new Thread(new RunningRecommender(myRecommender)).start();
-		// }
-		// }
-		// }
 	}
 }
